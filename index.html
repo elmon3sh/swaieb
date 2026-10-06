@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>استلام المعاملات</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+        }
+        /* force English numbers font display */
+        .en-num {
+            font-family: 'Cairo', sans-serif;
+            font-feature-settings: "lnum" 1;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            body {
+                background: #fff !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen pb-12">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center flex-wrap gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-blue-600 text-white rounded-xl shadow-md shadow-blue-500/20">
+                    <i data-lucide="file-check-2" class="w-7 h-7"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">استلام المعاملات</h1>
+                    <p class="text-xs text-slate-500 font-medium">تسجيل سريع وإدارة أعداد وأسعار المعاملات اليومية</p>
+                </div>
+            </div>
+
+            <!-- Date Selector / Today -->
+            <div class="flex items-center gap-2 bg-slate-100 p-2 rounded-xl border border-slate-200">
+                <i data-lucide="calendar" class="w-5 h-5 text-slate-500"></i>
+                <span class="text-sm font-bold text-slate-700 pl-1">اليوم:</span>
+                <input type="date" id="transaction-date" class="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none en-num">
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+
+        <!-- Daily Prices Card -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 mb-6 no-print">
+            <div class="flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
+                <i data-lucide="tag" class="w-5 h-5 text-indigo-600"></i>
+                <h2 class="text-lg font-bold text-slate-800">تحديد أسعار اليوم (تطبق تلقائياً عند الإضافة)</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
+                    <label for="price-jahez" class="block text-xs font-bold text-emerald-800 mb-1">سعر المعاملة فئة (الجاهز)</label>
+                    <div class="relative">
+                        <input type="number" id="price-jahez" min="0" step="0.01" placeholder="أدخل السعر..." onkeydown="handleEnterBlur(event)" onchange="updateDefaultPrices()" oninput="updateDefaultPrices()" class="w-full bg-white border border-emerald-300 rounded-lg px-3 py-2 text-slate-900 font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-none en-num pl-12">
+                        <span class="absolute left-3 top-2.5 text-xs font-bold text-slate-400">د.ل</span>
+                    </div>
+                </div>
+                <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                    <label for="price-account" class="block text-xs font-bold text-blue-800 mb-1">سعر المعاملة فئة (فتح الحساب / الإصدار)</label>
+                    <div class="relative">
+                        <input type="number" id="price-account" min="0" step="0.01" placeholder="أدخل السعر..." onkeydown="handleEnterBlur(event)" onchange="updateDefaultPrices()" oninput="updateDefaultPrices()" class="w-full bg-white border border-blue-300 rounded-lg px-3 py-2 text-slate-900 font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none en-num pl-12">
+                        <span class="absolute left-3 top-2.5 text-xs font-bold text-slate-400">د.ل</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 no-print">
+
+            <!-- Card 1: اسم المورد -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 relative overflow-hidden flex flex-col justify-between">
+                <div class="absolute top-0 right-0 w-2 h-full bg-blue-600"></div>
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <label for="supplier-select" class="flex items-center gap-2 text-lg font-bold text-slate-800">
+                            <i data-lucide="truck" class="w-5 h-5 text-blue-600"></i>
+                            اسم المورد
+                        </label>
+                        <button onclick="openAddSupplierModal()" class="text-xs text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> إضافة مورد
+                        </button>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">اختر اسم المورد</label>
+                        <select id="supplier-select" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-slate-800 font-bold focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none transition-all">
+                            <!-- Options populated via JS -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: نوع المعاملة + عدد المعاملات + زر الإضافة -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 relative overflow-hidden flex flex-col justify-between">
+                <div class="absolute top-0 right-0 w-2 h-full bg-emerald-600"></div>
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <label for="type-select" class="flex items-center gap-2 text-lg font-bold text-slate-800">
+                            <i data-lucide="layers" class="w-5 h-5 text-emerald-600"></i>
+                            نوع المعاملة
+                        </label>
+                        <button onclick="openAddTypeModal()" class="text-xs text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> إضافة نوع
+                        </button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">اختر نوع المعاملة</label>
+                            <select id="type-select" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-slate-800 font-bold focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none transition-all">
+                                <!-- Options populated via JS -->
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">عدد المعاملات</label>
+                            <input type="number" id="transaction-count" min="1" value="1" placeholder="أدخل العدد..." onkeydown="handleCountEnterKey(event)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-slate-900 font-bold focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none en-num">
+                        </div>
+
+                        <button onclick="addTransaction()" class="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold py-3 px-4 rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 text-base">
+                            <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                            إضافة
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Stats Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 no-print">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-2 h-full bg-emerald-500"></div>
+                <div>
+                    <span class="text-xs font-bold text-slate-400 block mb-1">إجمالي الجاهز (عدد / قيمة)</span>
+                    <div class="flex items-baseline gap-2">
+                        <span id="stat-total-jahez" class="text-3xl font-extrabold text-emerald-600 en-num">0</span>
+                        <span class="text-xs text-slate-400 font-bold">معاملة</span>
+                    </div>
+                    <div class="text-sm font-bold text-emerald-700 mt-1">
+                        الإجمالي: <span id="stat-price-jahez" class="en-num font-extrabold text-base">0.00</span> د.ل
+                    </div>
+                </div>
+                <div class="p-3.5 bg-emerald-50 text-emerald-600 rounded-2xl">
+                    <i data-lucide="check-circle-2" class="w-8 h-8"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-2 h-full bg-blue-500"></div>
+                <div>
+                    <span class="text-xs font-bold text-slate-400 block mb-1">إجمالي فتح الحساب / الإصدار (عدد / قيمة)</span>
+                    <div class="flex items-baseline gap-2">
+                        <span id="stat-total-account" class="text-3xl font-extrabold text-blue-600 en-num">0</span>
+                        <span class="text-xs text-slate-400 font-bold">معاملة</span>
+                    </div>
+                    <div class="text-sm font-bold text-blue-700 mt-1">
+                        الإجمالي: <span id="stat-price-account" class="en-num font-extrabold text-base">0.00</span> د.ل
+                    </div>
+                </div>
+                <div class="p-3.5 bg-blue-50 text-blue-600 rounded-2xl">
+                    <i data-lucide="user-plus" class="w-8 h-8"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center flex-wrap gap-4 no-print">
+                <div class="flex items-center gap-2">
+                    <h2 class="font-bold text-slate-800 text-lg">سجل المعاملات اليومية</h2>
+                    <span id="record-count" class="bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5 rounded-full en-num">0</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.print()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl flex items-center gap-1.5 transition-colors">
+                        <i data-lucide="printer" class="w-4 h-4"></i> طباعة
+                    </button>
+                    <button onclick="clearAllData()" class="px-3.5 py-2 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-bold rounded-xl flex items-center gap-1.5 transition-colors">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i> مسح الكل
+                    </button>
+                </div>
+            </div>
+
+            <!-- Print Header -->
+            <div class="hidden print-only p-6 border-b border-slate-300 text-center">
+                <h1 class="text-3xl font-extrabold text-slate-900 mb-2">تقرير استلام المعاملات اليومي</h1>
+                <p class="text-2xl font-extrabold text-slate-900 en-num mt-2 tracking-wide" id="print-date-display"></p>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-right border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-500 text-xs font-bold border-b border-slate-200">
+                            <th class="py-3.5 px-4">#</th>
+                            <th class="py-3.5 px-4">اسم المورد</th>
+                            <th class="py-3.5 px-4">نوع المعاملة</th>
+                            <th class="py-3.5 px-4 text-center">العدد</th>
+                            <th class="py-3.5 px-4 text-center">سعر الوحدة</th>
+                            <th class="py-3.5 px-4 text-center">الإجمالي</th>
+                            <th class="py-3.5 px-4 no-print text-center">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactions-table-body" class="divide-y divide-slate-100 text-sm font-medium text-slate-700">
+                        <!-- Dynamic Rows -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="empty-state" class="py-12 text-center text-slate-400">
+                <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-3 stroke-1 text-slate-300"></i>
+                <p class="text-sm font-semibold">لا توجد معاملات مسجلة لهذا اليوم</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Add Supplier Modal -->
+    <div id="supplier-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">إضافة مورد جديد</h3>
+            <input type="text" id="new-supplier-input" placeholder="ادخل اسم المورد..." onkeydown="handleModalEnter(event, saveNewSupplier)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm mb-4 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <div class="flex justify-end gap-2">
+                <button onclick="closeAddSupplierModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">إلغاء</button>
+                <button onclick="saveNewSupplier()" class="px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700">إضافة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Type Modal -->
+    <div id="type-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">إضافة نوع معاملة جديد</h3>
+            <input type="text" id="new-type-input" placeholder="ادخل نوع المعاملة..." onkeydown="handleModalEnter(event, saveNewType)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm mb-4 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <div class="flex justify-end gap-2">
+                <button onclick="closeAddTypeModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">إلغاء</button>
+                <button onclick="saveNewType()" class="px-4 py-2 text-sm font-semibold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700">إضافة</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const jahezGroup = ['جاهز', 'خارج الفرع', 'تم الحل جاهز'];
+        const accountGroup = ['فتح حساب', 'إصدار', 'تم الحل إصدار', 'تم الحل فتح حساب'];
+
+        const defaultSuppliers = ['امحمد كاشديه', 'على اللاس'];
+        const defaultTypes = [
+            'جاهز', 
+            'خارج الفرع', 
+            'تم الحل جاهز', 
+            'فتح حساب', 
+            'إصدار', 
+            'تم الحل إصدار', 
+            'تم الحل فتح حساب'
+        ];
+
+        let suppliers = JSON.parse(localStorage.getItem('suppliers_v9')) || defaultSuppliers;
+        let types = JSON.parse(localStorage.getItem('types_v9')) || defaultTypes;
+        let transactions = JSON.parse(localStorage.getItem('transactions_v9')) || [];
+        let dailyPrices = JSON.parse(localStorage.getItem('dailyPrices_v9')) || { jahez: null, account: null };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const dateInput = document.getElementById('transaction-date');
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.value = today;
+
+            document.getElementById('price-jahez').value = dailyPrices.jahez !== null && dailyPrices.jahez !== undefined ? dailyPrices.jahez : '';
+            document.getElementById('price-account').value = dailyPrices.account !== null && dailyPrices.account !== undefined ? dailyPrices.account : '';
+
+            dateInput.addEventListener('change', renderTransactions);
+
+            renderDropdowns();
+            renderTransactions();
+            lucide.createIcons();
+        });
+
+        function handleEnterBlur(e) {
+            if (e.key === 'Enter') {
+                e.target.blur();
+            }
+        }
+
+        function handleCountEnterKey(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addTransaction();
+            }
+        }
+
+        function handleModalEnter(e, actionFunction) {
+            if (e.key === 'Enter') {
+                actionFunction();
+            }
+        }
+
+        function updateDefaultPrices() {
+            const jahezVal = document.getElementById('price-jahez').value;
+            const accountVal = document.getElementById('price-account').value;
+            
+            const jahezPrice = jahezVal !== '' ? parseFloat(jahezVal) : null;
+            const accountPrice = accountVal !== '' ? parseFloat(accountVal) : null;
+            
+            dailyPrices = { jahez: jahezPrice, account: accountPrice };
+            localStorage.setItem('dailyPrices_v9', JSON.stringify(dailyPrices));
+        }
+
+        function renderDropdowns() {
+            const supplierSelect = document.getElementById('supplier-select');
+            const typeSelect = document.getElementById('type-select');
+
+            supplierSelect.innerHTML = suppliers.map(s => `<option value="${s}">${s}</option>`).join('');
+            typeSelect.innerHTML = types.map(t => `<option value="${t}">${t}</option>`).join('');
+        }
+
+        function addTransaction() {
+            const supplier = document.getElementById('supplier-select').value;
+            const type = document.getElementById('type-select').value;
+            const countInput = document.getElementById('transaction-count');
+            const count = parseInt(countInput.value) || 1;
+            const date = document.getElementById('transaction-date').value;
+
+            if(!supplier || !type || count <= 0) return;
+
+            let unitPrice = 0;
+            const jahezVal = document.getElementById('price-jahez').value;
+            const accountVal = document.getElementById('price-account').value;
+
+            if (jahezGroup.includes(type)) {
+                unitPrice = jahezVal !== '' ? parseFloat(jahezVal) : 0;
+            } else if (accountGroup.includes(type)) {
+                unitPrice = accountVal !== '' ? parseFloat(accountVal) : 0;
+            }
+
+            const newItem = {
+                id: Date.now(),
+                supplier,
+                type,
+                count,
+                unitPrice,
+                date
+            };
+
+            transactions.unshift(newItem);
+            saveData();
+            renderTransactions();
+
+            countInput.value = 1;
+            countInput.blur();
+        }
+
+        function updateItemCount(id, newCount) {
+            const parsedCount = parseInt(newCount) || 1;
+            const item = transactions.find(t => t.id === id);
+            if (item) {
+                item.count = parsedCount < 1 ? 1 : parsedCount;
+                saveData();
+                renderTransactions();
+            }
+        }
+
+        function updateItemPrice(id, newPrice) {
+            const parsedPrice = newPrice !== '' ? parseFloat(newPrice) : 0;
+            const item = transactions.find(t => t.id === id);
+            if (item) {
+                item.unitPrice = parsedPrice;
+                saveData();
+                renderTransactions();
+            }
+        }
+
+        function renderTransactions() {
+            const selectedDate = document.getElementById('transaction-date').value;
+            const tbody = document.getElementById('transactions-table-body');
+            const emptyState = document.getElementById('empty-state');
+            const countBadge = document.getElementById('record-count');
+            const printDateDisplay = document.getElementById('print-date-display');
+
+            printDateDisplay.textContent = `التاريخ: ${selectedDate}`;
+
+            const filtered = transactions.filter(t => t.date === selectedDate);
+            countBadge.textContent = filtered.length;
+
+            let totalJahezCount = 0;
+            let totalJahezPrice = 0;
+            let totalAccountCount = 0;
+            let totalAccountPrice = 0;
+
+            filtered.forEach(t => {
+                const itemTotal = (t.count || 0) * (t.unitPrice || 0);
+                if (jahezGroup.includes(t.type)) {
+                    totalJahezCount += t.count;
+                    totalJahezPrice += itemTotal;
+                } else if (accountGroup.includes(t.type)) {
+                    totalAccountCount += t.count;
+                    totalAccountPrice += itemTotal;
+                }
+            });
+
+            document.getElementById('stat-total-jahez').textContent = totalJahezCount;
+            document.getElementById('stat-price-jahez').textContent = totalJahezPrice.toFixed(2);
+            document.getElementById('stat-total-account').textContent = totalAccountCount;
+            document.getElementById('stat-price-account').textContent = totalAccountPrice.toFixed(2);
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            tbody.innerHTML = filtered.map((item, index) => {
+                const isJahez = jahezGroup.includes(item.type);
+                const badgeClass = isJahez 
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
+                    : 'bg-blue-50 text-blue-700 border border-blue-100';
+
+                const totalPrice = (item.count * (item.unitPrice || 0)).toFixed(2);
+                const displayUnitPrice = (item.unitPrice !== null && item.unitPrice !== undefined) ? item.unitPrice : '';
+
+                return `
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3.5 px-4 font-bold text-slate-400 en-num">${index + 1}</td>
+                        <td class="py-3.5 px-4 font-bold text-slate-900">${item.supplier}</td>
+                        <td class="py-3.5 px-4">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold ${badgeClass}">
+                                ${item.type}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            <div class="inline-flex items-center justify-center no-print">
+                                <input type="number" min="1" value="${item.count}" 
+                                    onchange="updateItemCount(${item.id}, this.value)" 
+                                    onkeydown="handleEnterBlur(event)"
+                                    class="w-16 text-center bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 text-xs font-extrabold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:outline-none en-num">
+                            </div>
+                            <span class="hidden print-only en-num font-extrabold">${item.count}</span>
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            <div class="inline-flex items-center gap-1 no-print">
+                                <input type="number" step="0.01" min="0" placeholder="0" value="${displayUnitPrice}" 
+                                    onchange="updateItemPrice(${item.id}, this.value)" 
+                                    onkeydown="handleEnterBlur(event)"
+                                    class="w-20 text-center bg-slate-50 border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none en-num">
+                                <span class="text-xs text-slate-400 font-bold">د.ل</span>
+                            </div>
+                            <span class="hidden print-only en-num font-bold">${item.unitPrice || 0} د.ل</span>
+                        </td>
+                        <td class="py-3.5 px-4 text-center font-extrabold text-slate-800 en-num">
+                            ${totalPrice} <span class="text-xs text-slate-400 font-normal">د.ل</span>
+                        </td>
+                        <td class="py-3.5 px-4 no-print text-center">
+                            <button onclick="deleteTransaction(${item.id})" class="text-slate-400 hover:text-red-600 transition-colors p-1.5 rounded-lg hover:bg-red-50" title="حذف">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        function deleteTransaction(id) {
+            transactions = transactions.filter(t => t.id !== id);
+            saveData();
+            renderTransactions();
+        }
+
+        function clearAllData() {
+            if (confirm('هل أنت تأكد من رغبتك في مسح جميع معاملات اليوم؟')) {
+                const selectedDate = document.getElementById('transaction-date').value;
+                transactions = transactions.filter(t => t.date !== selectedDate);
+                saveData();
+                renderTransactions();
+            }
+        }
+
+        function openAddSupplierModal() { document.getElementById('supplier-modal').classList.remove('hidden'); }
+        function closeAddSupplierModal() { document.getElementById('supplier-modal').classList.add('hidden'); }
+        
+        function saveNewSupplier() {
+            const val = document.getElementById('new-supplier-input').value.trim();
+            if(val && !suppliers.includes(val)) {
+                suppliers.push(val);
+                saveData();
+                renderDropdowns();
+                document.getElementById('new-supplier-input').value = '';
+                closeAddSupplierModal();
+            }
+        }
+
+        function openAddTypeModal() { document.getElementById('type-modal').classList.remove('hidden'); }
+        function closeAddTypeModal() { document.getElementById('type-modal').classList.add('hidden'); }
+
+        function saveNewType() {
+            const val = document.getElementById('new-type-input').value.trim();
+            if(val && !types.includes(val)) {
+                types.push(val);
+                saveData();
+                renderDropdowns();
+                document.getElementById('new-type-input').value = '';
+                closeAddTypeModal();
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('suppliers_v9', JSON.stringify(suppliers));
+            localStorage.setItem('types_v9', JSON.stringify(types));
+            localStorage.setItem('transactions_v9', JSON.stringify(transactions));
+        }
+    </script>
+</body>
+</html>
